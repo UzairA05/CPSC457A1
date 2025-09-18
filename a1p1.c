@@ -1,8 +1,3 @@
-/* a1p1.c - Part 1 starter
- * Compile: gcc -O2 -Wall a1p1.c -o a1p1
- * Run: ./a1p1 < inputfilep1.txt
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -15,7 +10,7 @@ int main() {
     int matrix[ROWS][COLS];
     int i, j;
 
-    // read the matrix
+    // read matrix from stdin
     for (i = 0; i < ROWS; i++) {
         for (j = 0; j < COLS; j++) {
             if (scanf("%d", &matrix[i][j]) != 1) {
@@ -25,22 +20,36 @@ int main() {
         }
     }
 
-    // fork children, one per row
+    pid_t child_pids[ROWS];
+
     for (i = 0; i < ROWS; i++) {
         pid_t pid = fork();
         if (pid == 0) {
-            // child process
+            // child
             printf("Child %d (PID %d): Searching row %d\n", i, getpid(), i);
-            // TODO: search row and report result
+            for (j = 0; j < COLS; j++) {
+                if (matrix[i][j] == 1) {
+                    // found treasure
+                    exit(1);
+                }
+            }
             exit(0);
+        } else if (pid > 0) {
+            child_pids[i] = pid;
+        } else {
+            perror("fork");
+            exit(1);
         }
     }
 
-    // parent waits for children
+    // parent waits
     for (i = 0; i < ROWS; i++) {
-        wait(NULL);
+        int status;
+        pid_t pid = wait(&status);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 1) {
+            printf("Parent: Child with PID %d says it found treasure!\n", pid);
+        }
     }
 
-    printf("Parent: waiting done\n");
     return 0;
 }
