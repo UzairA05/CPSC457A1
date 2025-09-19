@@ -1,4 +1,7 @@
-/* a1p1.c
+/* Uzair Ansari
+ * 30205691
+ *
+ * a1p1.c
  * - reads a 100 x 1000 matrix
  * - forks 100 children
  * - each child is assigned a row to search for the treasure
@@ -18,7 +21,7 @@ int main() {
     int matrix[ROWS][COLS];
     int i, j;
 
-    // read matrix from stdin
+    // read the whole matrix from standard input
     for (i = 0; i < ROWS; i++) {
         for (j = 0; j < COLS; j++) {
             if (scanf("%d", &matrix[i][j]) != 1) {
@@ -28,35 +31,41 @@ int main() {
         }
     }
 
-    pid_t pids[ROWS];
-    int treasure_row = -1;
-    pid_t treasure_pid = -1;
+    pid_t pids[ROWS];          // keep track of child PIDs
+    int treasure_row = -1;     // which row has the treasure
+    pid_t treasure_pid = -1;   // PID of the child that found it
 
-    // fork children
+    // create 100 child processes (one per row)
     for (i = 0; i < ROWS; i++) {
         pid_t pid = fork();
         if (pid == 0) {
-            // child
+            // child process
             printf("Child %d (PID %d): Searching row %d\n", i, getpid(), i);
             for (j = 0; j < COLS; j++) {
                 if (matrix[i][j] == 1) {
-                    exit(1); // found
+                    // exit with code 1 if found
+                    exit(1);
                 }
             }
-            exit(0); // not found
+            // exit with code 0 if not found
+            exit(0);
         } else if (pid > 0) {
+            // parent stores child PID
             pids[i] = pid;
         } else {
+            // fork failed
             perror("fork");
             return 1;
         }
     }
 
-    // parent waits for results
+    // parent waits for all children
     for (i = 0; i < ROWS; i++) {
         int status;
         pid_t pid = wait(&status);
+        // if child exited with code 1, it means treasure was found
         if (WIFEXITED(status) && WEXITSTATUS(status) == 1) {
+            // find which row this PID belongs to
             for (int r = 0; r < ROWS; r++) {
                 if (pids[r] == pid) {
                     treasure_row = r;
@@ -67,6 +76,7 @@ int main() {
     }
 
     if (treasure_row != -1) {
+        // parent goes back to matrix to figure out the column
         int col_found = -1;
         for (j = 0; j < COLS; j++) {
             if (matrix[treasure_row][j] == 1) {
